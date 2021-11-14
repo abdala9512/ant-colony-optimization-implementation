@@ -1,9 +1,11 @@
 """"Data process"""
 
+from src.algorithms.ac_optimizer import ACOptimizer, SetCoverACO
+
 class DataReader:
 
 
-    def __init__(self, file):
+    def __init__(self, file) -> None:
         """
         DataReader Initialization
         
@@ -35,3 +37,14 @@ class DataReader:
         sets = [ [ int(j) for j in i.split()[1: ] ] for i in data[1:] ]
         costs = [ int(i.split()[0])  for i in data[1:] ]
         return  sets, costs
+
+
+class ACOAnalytics:
+
+    def __init__(self, aco_instance: SetCoverACO) -> None:
+        pass
+
+class DataWriter:
+
+    def __init__(self, aco_instance: SetCoverACO) ->None:
+        pass
