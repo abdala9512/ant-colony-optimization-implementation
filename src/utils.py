@@ -48,3 +48,29 @@ class DataWriter:
 
     def __init__(self, aco_instance: SetCoverACO) ->None:
         pass
+
+class BaseLogger:
+    
+    
+    def __init__(self, logger_name: str = "Model Logger") -> None:
+        
+        self.logger_name = logger_name
+        self.logger      =  logging.getLogger(self.logger_name)
+        self.__logger_settings()
+        # TODO: Check if the only handler needed is the StreamHandler
+        for handler in self.logger.handlers: self.logger.removeHandler(handler)
+        
+        
+    def __logger_settings(self) -> None:
+        
+        self.logger.setLevel(logging.INFO)
+        logFileHandler = logging.FileHandler("./app.log",mode='w')
+        consoleHandler  = logging.StreamHandler()
+        logFormatter = logging.Formatter('%(name)s - %(levelname)s - [%(asctime)s] - %(message)s')
+        
+        consoleHandler.setFormatter(logFormatter)
+        logFileHandler.setFormatter(logFormatter)
+        
+        self.logger.addHandler(logFileHandler)
+        self.logger.addHandler(consoleHandler)
+

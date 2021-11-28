@@ -1,7 +1,7 @@
 
 
 
-class ACO:
+class ACOptimizer:
 
 
     def __init__(self):
