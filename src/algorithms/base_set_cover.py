@@ -1,5 +1,9 @@
 """Base Set Covering class"""
 
+from collections import Counter
+import numpy as np
+
+
 from src.utils import BaseLogger
 
 
@@ -16,7 +20,9 @@ class SetCovering(BaseLogger):
         self.total_set_elements = len(self.universe)
         self.total_subsets      = len(subsets)
         self.item_scores        = self.__calculate_item_scores()
-        self.set_probabilities  = self.__calculate_set_scores()
+        self.set_scores         = self.__calculate_set_scores()
+        self.set_probabilities  = self.__calculate_set_probabilities()
+        self.max_len_set        = max([len(subset) for subset in self.subsets])
     
     def __identify_unique_items(self) -> Set:
         """Find all unique elements of data structure
@@ -42,7 +48,7 @@ class SetCovering(BaseLogger):
             
         return item_scores
 
-    def __calculate_set_scores(self):
+    def __calculate_set_probabilities(self):
         """Return the average score for each subset"""
         scores = [np.mean([self.item_scores[i] for i in subset])   for subset in self.subsets]
         
@@ -52,6 +58,15 @@ class SetCovering(BaseLogger):
     def __calculate_probabilities(self, vals):
         total_sum     = sum(vals)
         return [ val / total_sum  for val in vals ]
+    
+    def __calculate_set_scores(self):
+        
+        total_subsets = []
+        for subset in self.subsets:
+            subset_scores = [self.item_scores[i] for i in subset]
+            subset_overall_score = np.average(subset_scores, weights= [item / sum(subset_scores) for item in subset_scores])
+            total_subsets.append(subset_overall_score)
+        return total_subsets
         
     
     def cover(self, probs = None):
@@ -63,31 +78,21 @@ class SetCovering(BaseLogger):
         
         all_available_subsets = [*range(self.total_subsets)]
         
-        
-        
+    
         covered = set()
         selected_subsets = []
         cost = 0
         while covered != self.universe:
-            
-            scores_ = zip(all_available_subsets, self.__calculate_probabilities(prob_dist))
-            scores_ = dict(scores_)
-            
-            subset_idx = self.__select_set(set_list = list( scores_.keys() ),
-                                           probs = list( scores_.values() ))
+
+            subset_idx = self.__select_set(set_list = all_available_subsets)
             subset     = set( self.subsets[subset_idx] )
-            #print(f"selected set: {subset_idx}")
             
             selected_subsets.append(subset_idx)
             covered |= subset
             
             cost += self.costs[subset_idx]
+            all_available_subsets.remove(subset_idx)
             
-            del scores_[subset_idx]
-            
-            print(f"total cost: {cost}")
-            print(f"total subsets used: {len(selected_subsets)}")
-            print(f"elements covered {len(covered)}")
         
         self.logger.info(f">>> Total covering cost: {cost}")
         self.logger.info(f">>> Total subsets selected: {len(selected_subsets)}")
@@ -97,10 +102,8 @@ class SetCovering(BaseLogger):
         
     def __select_set(self, set_list: List, probs = None):
         """Select a set index, regarding if the set already have appended to a subset_list"""
-        subset_idx = np.random.choice( set_list, 
-                                       size = 1, 
-                                       p = probs)[0]
-        return subset_idx
+        subset_idx = random.randint(0, len(set_list) - 1)
+        return set_list[subset_idx]
     
     @staticmethod
     def max_min_normalizer(num, max_val, min_val):
