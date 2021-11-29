@@ -11,6 +11,11 @@ from src.utils import BaseLogger
 
 
 
+"""Ant System Metaherustic"""
+
+import multiprocessing
+
+
 class ACOptimizer(BaseLogger):
     
     def __init__(self, 
@@ -36,7 +41,8 @@ class ACOptimizer(BaseLogger):
         self.heuristic_alpha = alpha
         self.heuristic_beta = beta
         self.set_initial_pheromones = self.__calc_pheromone()
-        self.set_pheromones = [ 1 / self.set_cover.total_subsets for pheromone in self.set_initial_pheromones]
+        #self.set_pheromones = [ 1 / self.set_cover.total_subsets for pheromone in self.set_initial_pheromones]
+        self.set_pheromones = self.set_initial_pheromones
         self.initialized = False
         
     def __str__(self):
@@ -120,11 +126,43 @@ class ACOptimizer(BaseLogger):
         total_sum     = sum(pheromones)
         return [ val / total_sum  for val in pheromones ]
     
+    def __select_top_n_sets(self, arr, n=100):
+        return np.argsort(arr)[-n:]
     
-    def __local_search(self):
-        pass
     
-    
+    def local_search(self, solution, dropout = 0.015):
+        
+        best_sets = self.__select_top_n_sets(self.set_pheromones)
+        sample_size = int( (1 - dropout) * len(solution[0]) )
+        
+        dropout_solution = random.sample(solution[0], sample_size)
+        for bst in best_sets:
+            if bst not in dropout_solution:
+                dropout_solution.append(bst)
+                
+        covered = set(dropout_solution)
+        cost = sum([ self.set_cover.costs[subset_idx] for subset_idx in dropout_solution])
+        complement_sets = [subset for subset in range(self.set_cover.total_subsets) if subset not in dropout_solution]
+        while covered != self.set_cover.universe:
+            
+            subset_idx = np.random.choice(a = complement_sets)
+            subset     = set( self.set_cover.subsets[subset_idx] )
+            
+            if subset_idx in dropout_solution:
+                continue
+                
+            dropout_solution.append(subset_idx)
+            covered |= subset
+
+            cost += self.set_cover.costs[subset_idx]
+        
+        self.logger.info(f">>> ------------------------------------------------------------------------------")
+        self.logger.info(f">>> LOCAL SEARCH: Total covering cost: {cost}")
+        self.logger.info(f">>> LOCAL SEARCH: Total subsets selected: {len(selected_subsets)}")
+        
+        return dropout_solution, cost
+        
+        
     @staticmethod
     def make_pool():
         
@@ -139,20 +177,22 @@ class ACOptimizer(BaseLogger):
         
         # 1. Inicialization
         # Calculate pheromones, 
-        #self.__initialize()
-        
+        f_solutions = self.__initialize()
+        self.__update_probabilities(f_solutions)
         for _ in range(iterations):
             print(f" iteratcio {_}: ")
             pool = ACOptimizer.make_pool()
-            # Ant solutions
             solutions = pool.map(self.build_ant_solution, [1 for i in range(self.ants)])
-            pool.close() 
+            
             # local search
-            self.__local_search()
+            ls_solutions = pool.map(self.local_search, solutions)
+            iteration_solutions = [ls_solution if ls_solution[1] < solution else solution for ls_solution, solution in zip(ls_solutions, solutions)]
+            pool.close() 
             # Global update pheromones
-            self.__update_probabilities(solutions)
+            self.__update_probabilities(iteration_solutions)
             
         pool.close() 
         return solutions
         
         
+
