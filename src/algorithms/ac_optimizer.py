@@ -10,12 +10,6 @@ from src.algorithms.base_set_cover import SetCovering
 from src.utils import BaseLogger
 
 
-
-"""Ant System Metaherustic"""
-
-import multiprocessing
-
-
 class ACOptimizer(BaseLogger):
     
     def __init__(self, 
