@@ -1,6 +1,6 @@
 """"Data process"""
 
-from src.algorithms.ac_optimizer import ACOptimizer, SetCoverACO
+from src.algorithms.ac_optimizer import ACOptimizer
 
 class DataReader:
 
@@ -41,13 +41,31 @@ class DataReader:
 
 class ACOAnalytics:
 
-    def __init__(self, aco_instance: SetCoverACO) -> None:
-        pass
-
-class DataWriter:
-
-    def __init__(self, aco_instance: SetCoverACO) ->None:
-        pass
+    def __init__(self, aco_instance: ACOptimizer) -> None:
+        self.aco_instance = aco_instance
+        self.solutions = aco_instance.solutions
+        self.total_iterations = len(aco_instance.solutions)
+        self.iter_df = self.__prepare_data()
+        
+    def generate_report(self, filename = "iteration_history.csv") -> None:
+         self.iter_df.to_csv(filename, index=False)
+            
+    @staticmethod  
+    def save_image(img, filename):
+        img.get_figure().savefig(filename)
+    
+    def pheromones_distribution(self):
+        return sns.histplot(self.aco_instance.set_pheromones)
+        
+    def aco_algorithm_visuals(self):
+        return sns.lineplot(x = 'iteration', y = 'avg_cost', data = self.iter_df)
+    
+    def __prepare_data(self):
+        costs =  [[ant_solution[1] for ant_solution in iter_solution ] for iter_solution in self.solutions]
+        iterations = [(i+1, np.mean(cost)) for i, cost in enumerate(costs)]
+        df = pd.DataFrame(iterations, columns = ['iteration', 'avg_cost'])
+        return df
+    
 
 class BaseLogger:
     
